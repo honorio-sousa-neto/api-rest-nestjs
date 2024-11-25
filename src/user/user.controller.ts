@@ -7,20 +7,34 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AuthService } from 'src/auth/auth.service';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { Roles } from 'src/decorator/roles.decorator';
+import { Role } from 'src/enums/role.enum';
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
+    const hashedPassword = await this.authService.hashPassword(
+      createUserDto.password,
+    );
+    createUserDto.password = hashedPassword;
     return this.userService.create(createUserDto);
   }
 
+  @Roles(Role.Admin)
+  @UseGuards(AuthGuard)
   @Get()
   async findAll(
     @Query('page') page: string,
